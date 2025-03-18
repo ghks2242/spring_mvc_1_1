@@ -58,5 +58,36 @@ logging.level.hello.springmvc=debug
 #### @RestController
 * @Controller 는 반환값이 String 이면 뷰 이름으로 인식된다 그래서 뷰를 찾고 뷰가 렌더링 된다
 * @RestController 는 반환 값으로 뷰를 찾는것이 아니라 HTTP 메시지 바디에 바로 입력한다 (@Controller + @ResponseBody)
+* @RequestMapping("hello-basic") URL 호출이 오면 이메서드가 실행되도록 매핑한다, 대부분의 속성을 배열로 제공하므로 다중 설정이 가능 {"hello-basic" , "hello-go"} 
+
+#### 둘다허용
+다음 두가지는 요청이 다른 URL 이지만 스프링은 다음 URL 요청들을 같은 요청으로 매핑한다.
+* 매핑: "hello-basic"
+* URL 요청 : "/hello-basic", "/hello-basic/"
+
+/ 한것도 같이 매핑해준다
+
+### HTTP 메서드
+@RequestMapping 에 method 속성을 지정하지 않으면 HTTP 메서드와 무관하게 호출된다 즉 GET,HEAD,POST,PUT,PATCH,DELETE 모두 허용
+
+#### @PathVariable 사용
+* PathVariable 이름과 파라미터 이름이 같으면 생략할수있다
 
 
+    /**
+     * PathVariable
+     * @PathVariable("userId") String userId -> @PathVariable String userId ( 변수명이 같으면 축약가능)
+     *
+     * */
+    @GetMapping("/mapping/{userId}")
+    public String mappingPath(@PathVariable("userId") String data) {
+        log.info("mappingPath {}", data);
+        return "OK";
+    }
+
+다른여러매핑은 MappingController 에서 확인
+* 파라미터타입 추가매핑
+* 헤더타입 추가매핑
+* Content-type 헤더 기반추가매핑
+* Accept 헤더 기반 
+---
