@@ -91,3 +91,122 @@ logging.level.hello.springmvc=debug
 * Content-type 헤더 기반추가매핑
 * Accept 헤더 기반 
 ---
+### 참고
+@Controller 의 사용 가능한 파라미터 목록은 다음공식 메뉴얼에서 확인할 수 있다.
+https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-arguments
+
+### 참고
+@Controller 의 사용 가능한 응답 값 목록은 다음공식 메뉴얼에서 확인할 수 있다.
+https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-return-types
+---
+### 클라이언트에서 서버로 요청데이터를 전달할때는 3가지 방식을 사용한다
+1. GET - 쿼리 파라미터
+   * /url?username=hello&age=20
+   * 메시지 바디 없이, URL 의 쿼리 파라미터에 데이터를 포함해서 전달
+   * 예) 검색, 필터, 페이징 등에서 많이사용
+2. POST - HTML Form
+   * content-type: application/x-www-form-urlencoded
+   * 메시지 바디에 쿼리파라미터 형식으로 전달 username=hello&age=20
+   * 예) 회원가입, 상품주문, HTML Form 사용
+3. HTTP message body
+   * HTTP API 에서 주로 사용, JSON, XML, TEXT
+   * 데이터 형식은 주로 JSON 사용
+   * POST, PUT, PATCH
+
+
+### 요청 파라미터 - 쿼리파라미터, HTML Form
+HttpServletRequest 의 request.getParameter() 을 사용하면 다음 두가지 요청 파라미터를 조회할수있다.
+* GET - 쿼리 파라미터
+* POST - HTML Form
+
+-> GET 쿼리파라미터 전송방식이든, POST HTML Form 전송 방식이든 둘다 형식이 같으므로 구분없이 조회할수있다.
+RequestParamController 에 requestParamV1 메소드를 실행시키나(GET) http://localhost:8080/basic/hello-form.html (POST) 에서 데이터를 입력하나 같은 컨트롤러에 메서드가 동작한다.
+
+* @RequestParam.required
+  * 파라미터 필수여부
+  * 기본값이 파라미터 필수(true) 이다
+* /request-param-required 요청
+  * username 이 없으므로 400 예외가 발생
+
+### 주의! 파라미터 이름만 사용
+/request-param-required?username=
+으로 요청시 username 을 빈문자로보고 통과시킨다 null과 "" 은 엄연히 다르다
+
+### 주의!! 기본형(primitive)에 null 입력
+* /request-param-required 요청
+* @RequestParam(required = false) int age
+
+
+    @RequestParam(required = false) int age 는 원래라면 age 파라미터가 없어도 정상적으로 동작하여야한다
+    근데 실제로 해보면 작동하지않는다 그이유는 int 는 기본형이라 null 이 될수 없기때문이다 (자바에서 기본형은 0이라는 값이 들어간다)
+    저대로 사용하고 싶으면 int 를 Integer 로 변경해야한다
+    자바에서 Integer 객체형이라 null 이 가능하다
+    => 따라서 null 을 받을수있는ㄷ Integer 로 변경하거나 defaultValue 를 사용해야한다
+
+defaultValue 는 빈문자의 경우에도 설정이 적용된다
+
+
+#### 파라미터를 맵으로조회
+* @RequestParam Map
+  * Mao(key=value)
+* @RequestParam MultiValueMap
+  * MultiValueMap(userIds = [id1, id2, ...])
+?userIds=id1&userIds=id2
+
+파라미터 값이 1개면 Map 을 사용해도되지만 그렇지 않다면 MultiValueMap 을 사용하자
+
+---
+## HelloData
+롬복에 @Data 를 사용하면 @Getter, @Setter, @ToString, @EqualAndHashCode, @RequiredArgsConstructor 를 자동으로 적용해준다
+    
+    HelloData 에 데이터를 넣고 log.info("HelloData = {}, helloData) 을 해도 객체가 찍히는게 아니라 데이터가 잘보인다 
+    그이유는 롬복에 @Data 에 있는 @ToString 이 자동으로 만들어준다
+
+## @ModelAttribute
+
+    @RequestMapping("/model-attribute-v1")
+    @ResponseBody
+    public String modelAttributeV1(@RequestParam String username, @RequestParam Integer age) {
+       HelloData helloData = new HelloData();
+       helloData.setUsername(username);
+       helloData.setAge(age);
+       
+       log.info("username = {}, age = {} ", helloData.getUsername(), helloData.getAge());
+       log.info("HelloData = {} " , helloData);
+       return "OK";
+    }
+이코드를 @ModelAttribute 를 사용하면
+
+    @RequestMapping("/model-attribute-v1")
+    @ResponseBody
+    public String modelAttributeV1(@ModelAttribute HelloData helloData) {
+        log.info("username = {}, age = {} ", helloData.getUsername(), helloData.getAge());
+        log.info("HelloData = {} " , helloData);
+        return "OK";
+    }
+
+마치 마법처럼 HelloData 객체가 생성되고 요청파라미터 값이 모두 들어가 있다.
+스프링 MVC 는 @ModelAttribute 가 있으면 다음을 실행한다.
+
+* HelloData 객체를 생성한다
+* 요청 파라미터의 이름으로 HelloData 객체의 프로퍼티를 찾는다 그리고 해당 프로퍼티의 setter 를 호출해서 파라미터의 입력(바인딩) 한다
+* 예) 파라미터 이름이 username 이면 setUsername() 메서드를 찾아서 호출하면서 값을 입력한다
+
+### 프로퍼티
+객체에 getUsername(), setUsername(), 메서드가 있으면 이객체는 username 이라는 프로퍼티를 가지고있다.
+username 프로퍼티의 값을 변경하면 setUsername() 이 호출되고, 조작하면 getUsername() 이 호출된다
+
+<br>
+
+### 바인딩 오류
+"age=abc" 처럼 숫자가 들어가야할곳에 문자를 넣으면 BindException 이 발생한다 이런 바인딩 오류 처리하는 방법은 검증부분에서 다룬다.
+
+<br>
+
+### @ModelAttribute 도 생략이 가능하다
+그런데 @RequestParam 도 생략할수 있으니 혼란이 발생할수있다.
+스프링은 해당 생략시 다음과 같은 규칙을 적용한다.
+* String, int, Integer 같은 단순타입 => @RequestPara
+* 나머지 @ModelAttribute (argument resolver 로 지정해둔 타입은 예외)
+
+
